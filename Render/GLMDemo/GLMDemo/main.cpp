@@ -32,17 +32,15 @@ namespace
 			std::cout << " ]\n";
 		}
 	}
-}
 
-int main()
-{
-	std::cout << std::fixed << std::setprecision(3);
-
-	// ============================================================
-	// 1. 向量的基础运算
-	// ============================================================
+	void PrintSectionHeader(const char* title)
 	{
-		std::cout << "========== 1. 向量的基础运算 ==========\n";
+		std::cout << "========== " << title << " ==========\n";
+	}
+
+	void RunVectorBasicsDemo()
+	{
+		PrintSectionHeader("1. 向量的基础运算");
 
 		Vector3 a(1.0f, 2.0f, 3.0f);
 		Vector3 b(4.0f, 5.0f, 6.0f);
@@ -65,11 +63,9 @@ int main()
 		std::cout << '\n';
 	}
 
-	// ============================================================
-	// 2. 构造矩阵
-	// ============================================================
+	void RunMatrixConstructionDemo()
 	{
-		std::cout << "========== 2. 构造矩阵 ==========\n";
+		PrintSectionHeader("2. 构造矩阵");
 
 		// mat4(1.0f) 创建一个 4x4 单位矩阵：
 		//
@@ -90,11 +86,9 @@ int main()
 		std::cout << '\n';
 	}
 
-	// ============================================================
-	// 3. 矩阵转置和求逆
-	// ============================================================
+	void RunMatrixOperationsDemo()
 	{
-		std::cout << "========== 3. 矩阵转置和求逆 ==========\n";
+		PrintSectionHeader("3. 矩阵转置和求逆");
 
 		Matrix4 matrix(1.0f);
 		matrix[0][0] = 2.0f;
@@ -113,11 +107,9 @@ int main()
 		std::cout << '\n';
 	}
 
-	// ============================================================
-	// 4. 创建平移矩阵
-	// ============================================================
+	void RunTranslationDemo()
 	{
-		std::cout << "========== 4. 创建平移矩阵 ==========\n";
+		PrintSectionHeader("4. 创建平移矩阵");
 
 		float tx = 2.0f;
 		float ty = 3.0f;
@@ -150,11 +142,9 @@ int main()
 		std::cout << '\n';
 	}
 
-	// ============================================================
-	// 5. 创建旋转矩阵
-	// ============================================================
+	void RunRotationDemo()
 	{
-		std::cout << "========== 5. 创建旋转矩阵 ==========\n";
+		PrintSectionHeader("5. 创建旋转矩阵");
 
 		// 这里创建“绕 Z 轴旋转 angle 角度”的旋转矩阵。
 		float angleDegrees = 90.0f;
@@ -189,6 +179,17 @@ int main()
 		PrintVector("point before", point);
 		PrintVector("point after", rotatedPoint);
 	}
+}
+
+int main()
+{
+	std::cout << std::fixed << std::setprecision(3);
+
+	RunVectorBasicsDemo();
+	RunMatrixConstructionDemo();
+	RunMatrixOperationsDemo();
+	RunTranslationDemo();
+	RunRotationDemo();
 
 	return 0;
 }
