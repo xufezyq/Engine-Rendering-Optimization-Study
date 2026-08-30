@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="GLMDemo/GLMDemo.vcxproj" Id="8de4dd6e-d1b3-4637-b0a8-8bb8d84d9347" />
+</Solution>
