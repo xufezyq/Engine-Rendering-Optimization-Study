@@ -1,4 +1,3 @@
-﻿#include <cmath>
 #include <iomanip>
 #include <iostream>
 
@@ -12,184 +11,173 @@ namespace
 {
 	void PrintVector(const char* name, const Vector3& vector)
 	{
-		std::cout << std::left << std::setw(24) << name
-			<< ": (" << vector.x << ", " << vector.y << ", " << vector.z << ")\n";
+		std::cout << std::left << std::setw(20) << name
+			<< ": (" << vector.x << ", " << vector.y
+			<< ", " << vector.z << ")\n";
 	}
 
 	void PrintMatrix(const char* name, const Matrix4& matrix)
 	{
 		std::cout << name << ":\n";
 
-		// GLM 使用 matrix[column][row] 访问矩阵。
-		// 下面为了阅读方便，按照“行”打印矩阵。
+		// GLM 按 matrix[列][行] 访问矩阵，这里按常见的行列形式打印。
 		for (int row = 0; row < 4; ++row)
 		{
 			std::cout << "  [ ";
+
 			for (int column = 0; column < 4; ++column)
-			{
 				std::cout << std::setw(8) << matrix[column][row];
-			}
+
 			std::cout << " ]\n";
 		}
 	}
 
-	void PrintSectionHeader(const char* title)
-	{
-		std::cout << "========== " << title << " ==========\n";
-	}
-
 	void RunVectorBasicsDemo()
 	{
-		PrintSectionHeader("1. 向量的基础运算");
+		std::cout << "========== Vector Basics ==========\n";
 
-		Vector3 a(1.0f, 2.0f, 3.0f);
-		Vector3 b(4.0f, 5.0f, 6.0f);
+		const Vector3 a(1.0f, 2.0f, 3.0f);
+		const Vector3 b(4.0f, 5.0f, 6.0f);
 
 		PrintVector("a", a);
 		PrintVector("b", b);
+
+		// 向量加法、减法和标量乘法。
 		PrintVector("a + b", a + b);
 		PrintVector("a - b", a - b);
 		PrintVector("a * 2", a * 2.0f);
 
-		// 点积的结果是一个数，常用于计算夹角或判断两个方向的关系。
-		std::cout << "dot(a, b)             : " << glm::dot(a, b) << '\n';
+		// 点积返回标量，可用于计算夹角和判断方向关系。
+		std::cout << std::left << std::setw(20)
+			<< "dot(a, b)" << ": " << glm::dot(a, b) << '\n';
 
-		// 叉积的结果仍然是一个三维向量，并且垂直于 a 和 b。
+		// 叉积返回垂直于 a 和 b 的向量。
 		PrintVector("cross(a, b)", glm::cross(a, b));
 
-		// length 是向量长度，normalize 将向量变成长度为 1 的单位向量。
-		std::cout << "length(a)              : " << glm::length(a) << '\n';
+		// 向量长度和归一化。
+		std::cout << std::left << std::setw(20)
+			<< "length(a)" << ": " << glm::length(a) << '\n';
 		PrintVector("normalize(a)", glm::normalize(a));
-		std::cout << '\n';
 	}
 
-	void RunMatrixConstructionDemo()
+	Matrix4 MakeTranslationMatrix(const Vector3& translation)
 	{
-		PrintSectionHeader("2. 构造矩阵");
-
-		// mat4(1.0f) 创建一个 4x4 单位矩阵：
+		// GLM 按列构造矩阵，下面直接展开平移矩阵的全部 16 个元素。
+		// 按行查看时为：
 		//
-		//     1  0  0  0
-		//     0  1  0  0
-		//     0  0  1  0
-		//     0  0  0  1
+		//   1  0  0  tx
+		//   0  1  0  ty
+		//   0  0  1  tz
+		//   0  0  0  1
 		//
-		Matrix4 matrix(1.0f);
+		return Matrix4(
+			Vector4(1.0f,           0.0f,           0.0f,           0.0f),
+			Vector4(0.0f,           1.0f,           0.0f,           0.0f),
+			Vector4(0.0f,           0.0f,           1.0f,           0.0f),
+			Vector4(translation.x,  translation.y,  translation.z,  1.0f));
+	}
 
-		// GLM 的访问顺序是 matrix[列][行]。
-		// 例如 matrix[1][2] 表示第 2 列、第 3 行的元素。
-		matrix[0][0] = 2.0f;
-		matrix[1][1] = 3.0f;
-		matrix[2][2] = 4.0f;
+	void RunMatrixBasicsDemo()
+	{
+		std::cout << "\n========== 矩阵构造、转置和求逆 ==========\n";
+
+		// 直接传入矩阵的全部 16 个元素。
+		// GLM 按列构造，因此这里依次传入第 1 到第 4 列。
+		// 按通常的“行”查看时，矩阵内容为：
+		//
+		//   2  1  0  5
+		//   0  3  1  6
+		//   0  0  4  7
+		//   0  0  0  1
+		//
+		Matrix4 matrix(
+			Vector4(2.0f, 0.0f, 0.0f, 0.0f),
+			Vector4(1.0f, 3.0f, 0.0f, 0.0f),
+			Vector4(0.0f, 1.0f, 4.0f, 0.0f),
+			Vector4(5.0f, 6.0f, 7.0f, 1.0f));
 
 		PrintMatrix("matrix", matrix);
-		std::cout << '\n';
-	}
 
-	void RunMatrixOperationsDemo()
-	{
-		PrintSectionHeader("3. 矩阵转置和求逆");
+		// 转置：交换矩阵的行和列。
+		Matrix4 transposed = glm::transpose(matrix);
+		PrintMatrix("transpose(matrix)", transposed);
 
-		Matrix4 matrix(1.0f);
-		matrix[0][0] = 2.0f;
-		matrix[1][1] = 3.0f;
-		matrix[2][2] = 4.0f;
-
-		Matrix4 transpose = glm::transpose(matrix);
+		// 求逆：构造一个可以撤销 matrix 变换的矩阵。
 		Matrix4 inverse = glm::inverse(matrix);
-
-		PrintMatrix("matrix", matrix);
-		PrintMatrix("transpose(matrix)", transpose);
 		PrintMatrix("inverse(matrix)", inverse);
 
-		// 一个矩阵乘以自己的逆矩阵，结果应该是单位矩阵。
+		// 原矩阵乘以逆矩阵，结果应接近单位矩阵。
 		PrintMatrix("matrix * inverse", matrix * inverse);
-		std::cout << '\n';
+
+		std::cout << "\n---------- 向量平移：直接计算和矩阵计算 ----------\n";
+
+		const Vector3 point(1.0f, 2.0f, 3.0f);
+		const Vector3 translation(10.0f, 20.0f, 30.0f);
+
+		PrintVector("point", point);
+		PrintVector("translation", translation);
+
+		// 直接用向量相加完成平移。
+		const Vector3 movedDirectly = point + translation;
+		PrintVector("point + translation", movedDirectly);
+
+		// 使用平移矩阵时，点必须扩展为 w=1 的齐次坐标。
+		Matrix4 translationMatrix = MakeTranslationMatrix(translation);
+
+		PrintMatrix("translation matrix", translationMatrix);
+
+		const Vector4 point4(point, 1.0f);
+		const Vector4 movedByMatrix4 = translationMatrix * point4;
+		const Vector3 movedByMatrix(movedByMatrix4);
+
+		PrintVector("matrix * point", movedByMatrix);
 	}
 
-	void RunTranslationDemo()
+	void RunVectorMatrixArithmeticDemo()
 	{
-		PrintSectionHeader("4. 创建平移矩阵");
+		std::cout << "\n========== 向量和矩阵的加减乘除 ==========\n";
 
-		float tx = 2.0f;
-		float ty = 3.0f;
-		float tz = 4.0f;
+		const Vector3 a(1.0f, 2.0f, 3.0f);
+		const Vector3 b(4.0f, 5.0f, 6.0f);
 
-		// 平移矩阵的数学形式是：
-		//
-		//     1  0  0  tx
-		//     0  1  0  ty
-		//     0  0  1  tz
-		//     0  0  0  1
-		//
-		// 先创建单位矩阵，再把平移量写入最后一列。
-		Matrix4 translation(1.0f);
-		translation[3][0] = tx;
-		translation[3][1] = ty;
-		translation[3][2] = tz;
+		std::cout << "---------- 向量运算 ----------\n";
+		PrintVector("a + b", a + b);
+		PrintVector("a - b", a - b);
+		PrintVector("a * 2", a * 2.0f);
+		PrintVector("a / 2", a / 2.0f);
+		std::cout << std::left << std::setw(20)
+			<< "dot(a, b)" << ": " << glm::dot(a, b) << '\n';
+		PrintVector("cross(a, b)", glm::cross(a, b));
 
-		PrintMatrix("translation matrix", translation);
+		std::cout << "\n---------- 矩阵运算 ----------\n";
+		const Matrix4 matrixA(
+			Vector4(2.0f, 0.0f, 0.0f, 0.0f),
+			Vector4(0.0f, 2.0f, 0.0f, 0.0f),
+			Vector4(0.0f, 0.0f, 2.0f, 0.0f),
+			Vector4(0.0f, 0.0f, 0.0f, 1.0f));
+		const Matrix4 matrixB(
+			Vector4(1.0f, 0.0f, 0.0f, 0.0f),
+			Vector4(0.0f, 1.0f, 0.0f, 0.0f),
+			Vector4(0.0f, 0.0f, 1.0f, 0.0f),
+			Vector4(3.0f, 4.0f, 5.0f, 1.0f));
 
-		// 三维点要补成四维向量，并令 w=1。
-		// 这样矩阵中的平移量才会参与计算。
-		Vector3 point(1.0f, 1.0f, 1.0f);
-		Vector4 point4(point, 1.0f);
-		Vector4 movedPoint4 = translation * point4;
-		Vector3 movedPoint(movedPoint4);
+		PrintMatrix("matrixA + matrixB", matrixA + matrixB);
+		PrintMatrix("matrixA - matrixB", matrixA - matrixB);
+		PrintMatrix("matrixA * 2", matrixA * 2.0f);
+		PrintMatrix("matrixA / 2", matrixA / 2.0f);
+		PrintMatrix("matrixA * matrixB", matrixA * matrixB);
+		PrintMatrix("matrixA / matrixB", matrixA * glm::inverse(matrixB));
 
-		PrintVector("point before", point);
-		PrintVector("point after", movedPoint);
-		std::cout << '\n';
-	}
-
-	void RunRotationDemo()
-	{
-		PrintSectionHeader("5. 创建旋转矩阵");
-
-		// 这里创建“绕 Z 轴旋转 angle 角度”的旋转矩阵。
-		float angleDegrees = 90.0f;
-		float pi = 3.1415926535f;
-		float angleRadians = angleDegrees * pi / 180.0f;
-
-		float c = std::cos(angleRadians);
-		float s = std::sin(angleRadians);
-
-		// 绕 Z 轴旋转的数学形式是：
-		//
-		//     cos -sin  0  0
-		//     sin  cos  0  0
-		//      0    0   1  0
-		//      0    0   0  1
-		//
-		// 注意：GLM 使用 matrix[列][行]，所以赋值时要按照列来写。
-		Matrix4 rotation(1.0f);
-		rotation[0][0] = c;
-		rotation[1][0] = -s;
-		rotation[0][1] = s;
-		rotation[1][1] = c;
-
-		PrintMatrix("rotation matrix", rotation);
-		std::cout << "angle: " << angleDegrees << " degrees\n";
-
-		// 点 (1, 0, 0) 绕 Z 轴旋转 90 度后，应该变成 (0, 1, 0)。
-		Vector3 point(1.0f, 0.0f, 0.0f);
-		Vector4 rotatedPoint4 = rotation * Vector4(point, 1.0f);
-		Vector3 rotatedPoint(rotatedPoint4);
-
-		PrintVector("point before", point);
-		PrintVector("point after", rotatedPoint);
+		const Vector4 vector4(a, 1.0f);
+		PrintVector("matrixA * vector", Vector3(matrixA * vector4));
 	}
 }
 
 int main()
 {
 	std::cout << std::fixed << std::setprecision(3);
-
 	RunVectorBasicsDemo();
-	RunMatrixConstructionDemo();
-	RunMatrixOperationsDemo();
-	RunTranslationDemo();
-	RunRotationDemo();
-
+	RunMatrixBasicsDemo();
+	RunVectorMatrixArithmeticDemo();
 	return 0;
 }
