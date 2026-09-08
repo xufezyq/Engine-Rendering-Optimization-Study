@@ -1,3 +1,4 @@
+#include <cmath>
 #include <iomanip>
 #include <iostream>
 
@@ -9,175 +10,284 @@ using Matrix4 = glm::mat4;
 
 namespace
 {
-	void PrintVector(const char* name, const Vector3& vector)
-	{
-		std::cout << std::left << std::setw(20) << name
-			<< ": (" << vector.x << ", " << vector.y
-			<< ", " << vector.z << ")\n";
-	}
+    // ========================================================================
+    // 第一部分：输出工具
+    // ========================================================================
 
-	void PrintMatrix(const char* name, const Matrix4& matrix)
-	{
-		std::cout << name << ":\n";
+    void PrintSection(const char* title)
+    {
+        std::cout << "\n========== " << title << " ==========\n";
+    }
 
-		// GLM 按 matrix[列][行] 访问矩阵，这里按常见的行列形式打印。
-		for (int row = 0; row < 4; ++row)
-		{
-			std::cout << "  [ ";
+    void PrintSubsection(const char* title)
+    {
+        std::cout << "---------- " << title << " ----------\n";
+    }
 
-			for (int column = 0; column < 4; ++column)
-				std::cout << std::setw(8) << matrix[column][row];
+    void PrintVector(const char* name, const Vector3& value)
+    {
+        std::cout << std::left << std::setw(24) << name
+                  << ": (" << value.x << ", "
+                  << value.y << ", "
+                  << value.z << ")\n";
+    }
 
-			std::cout << " ]\n";
-		}
-	}
+    void PrintMatrix(const char* name, const Matrix4& matrix)
+    {
+        std::cout << name << ":\n";
 
-	void RunVectorBasicsDemo()
-	{
-		std::cout << "========== Vector Basics ==========\n";
+        for (int row = 0; row < 4; ++row)
+        {
+            std::cout << "  [ ";
+            for (int column = 0; column < 4; ++column)
+                std::cout << std::setw(8) << matrix[column][row];
+            std::cout << " ]\n";
+        }
+    }
 
-		const Vector3 a(1.0f, 2.0f, 3.0f);
-		const Vector3 b(4.0f, 5.0f, 6.0f);
+    // ========================================================================
+    // 第二部分：角度和矩阵构造
+    // ========================================================================
 
-		PrintVector("a", a);
-		PrintVector("b", b);
+    float DegreesToRadians(float degrees)
+    {
+        return glm::radians(degrees);
+    }
 
-		// 向量加法、减法和标量乘法。
-		PrintVector("a + b", a + b);
-		PrintVector("a - b", a - b);
-		PrintVector("a * 2", a * 2.0f);
+    Vector3 DegreesToRadians(const Vector3& degrees)
+    {
+        return glm::radians(degrees);
+    }
 
-		// 点积返回标量，可用于计算夹角和判断方向关系。
-		std::cout << std::left << std::setw(20)
-			<< "dot(a, b)" << ": " << glm::dot(a, b) << '\n';
+    // GLM 使用列向量约定：变换写成 Matrix * Vector。
+    Matrix4 MakeTranslationMatrix(const Vector3& translation)
+    {
+        return Matrix4(
+            Vector4(1.0f,           0.0f,           0.0f,           0.0f),
+            Vector4(0.0f,           1.0f,           0.0f,           0.0f),
+            Vector4(0.0f,           0.0f,           1.0f,           0.0f),
+            Vector4(translation.x,  translation.y,  translation.z,  1.0f));
+    }
 
-		// 叉积返回垂直于 a 和 b 的向量。
-		PrintVector("cross(a, b)", glm::cross(a, b));
+    Matrix4 MakeScaleMatrix(const Vector3& scale)
+    {
+        // 缩放只需要修改主对角线：x、y、z 分别独立缩放。
+        return Matrix4(
+            Vector4(scale.x, 0.0f,    0.0f,    0.0f),
+            Vector4(0.0f,    scale.y, 0.0f,    0.0f),
+            Vector4(0.0f,    0.0f,    scale.z, 0.0f),
+            Vector4(0.0f,    0.0f,    0.0f,    1.0f));
+    }
 
-		// 向量长度和归一化。
-		std::cout << std::left << std::setw(20)
-			<< "length(a)" << ": " << glm::length(a) << '\n';
-		PrintVector("normalize(a)", glm::normalize(a));
-	}
+    Matrix4 MakeRotationXMatrix(float angle)
+    {
+        // 绕 X 轴旋转只改变 y、z 坐标，x 坐标保持不变。
+        const float c = std::cos(angle);
+        const float s = std::sin(angle);
 
-	Matrix4 MakeTranslationMatrix(const Vector3& translation)
-	{
-		// GLM 按列构造矩阵，下面直接展开平移矩阵的全部 16 个元素。
-		// 按行查看时为：
-		//
-		//   1  0  0  tx
-		//   0  1  0  ty
-		//   0  0  1  tz
-		//   0  0  0  1
-		//
-		return Matrix4(
-			Vector4(1.0f,           0.0f,           0.0f,           0.0f),
-			Vector4(0.0f,           1.0f,           0.0f,           0.0f),
-			Vector4(0.0f,           0.0f,           1.0f,           0.0f),
-			Vector4(translation.x,  translation.y,  translation.z,  1.0f));
-	}
+        return Matrix4(
+            Vector4(1.0f, 0.0f, 0.0f, 0.0f),
+            Vector4(0.0f, c,    s,    0.0f),
+            Vector4(0.0f, -s,   c,    0.0f),
+            Vector4(0.0f, 0.0f, 0.0f, 1.0f));
+    }
 
-	void RunMatrixBasicsDemo()
-	{
-		std::cout << "\n========== 矩阵构造、转置和求逆 ==========\n";
+    Matrix4 MakeRotationYMatrix(float angle)
+    {
+        // 绕 Y 轴旋转只改变 x、z 坐标，y 坐标保持不变。
+        const float c = std::cos(angle);
+        const float s = std::sin(angle);
 
-		// 直接传入矩阵的全部 16 个元素。
-		// GLM 按列构造，因此这里依次传入第 1 到第 4 列。
-		// 按通常的“行”查看时，矩阵内容为：
-		//
-		//   2  1  0  5
-		//   0  3  1  6
-		//   0  0  4  7
-		//   0  0  0  1
-		//
-		Matrix4 matrix(
-			Vector4(2.0f, 0.0f, 0.0f, 0.0f),
-			Vector4(1.0f, 3.0f, 0.0f, 0.0f),
-			Vector4(0.0f, 1.0f, 4.0f, 0.0f),
-			Vector4(5.0f, 6.0f, 7.0f, 1.0f));
+        return Matrix4(
+            Vector4(c,    0.0f, -s,   0.0f),
+            Vector4(0.0f, 1.0f, 0.0f, 0.0f),
+            Vector4(s,    0.0f, c,    0.0f),
+            Vector4(0.0f, 0.0f, 0.0f, 1.0f));
+    }
 
-		PrintMatrix("matrix", matrix);
+    Matrix4 MakeRotationZMatrix(float angle)
+    {
+        // 绕 Z 轴旋转只改变 x、y 坐标，z 坐标保持不变。
+        const float c = std::cos(angle);
+        const float s = std::sin(angle);
 
-		// 转置：交换矩阵的行和列。
-		Matrix4 transposed = glm::transpose(matrix);
-		PrintMatrix("transpose(matrix)", transposed);
+        return Matrix4(
+            Vector4(c,    s,    0.0f, 0.0f),
+            Vector4(-s,   c,    0.0f, 0.0f),
+            Vector4(0.0f, 0.0f, 1.0f, 0.0f),
+            Vector4(0.0f, 0.0f, 0.0f, 1.0f));
+    }
 
-		// 求逆：构造一个可以撤销 matrix 变换的矩阵。
-		Matrix4 inverse = glm::inverse(matrix);
-		PrintMatrix("inverse(matrix)", inverse);
+    Matrix4 MakeEulerRotationMatrix(const Vector3& eulerAngles)
+    {
+        // 欧拉角本质上是三个轴旋转矩阵的组合。
+        // 矩阵乘法从右向左生效，因此这里的执行顺序是 X、Y、Z。
+        const Matrix4 rotateX = MakeRotationXMatrix(eulerAngles.x);
+        const Matrix4 rotateY = MakeRotationYMatrix(eulerAngles.y);
+        const Matrix4 rotateZ = MakeRotationZMatrix(eulerAngles.z);
 
-		// 原矩阵乘以逆矩阵，结果应接近单位矩阵。
-		PrintMatrix("matrix * inverse", matrix * inverse);
+        return rotateZ * rotateY * rotateX;
+    }
 
-		std::cout << "\n---------- 向量平移：直接计算和矩阵计算 ----------\n";
+    // ========================================================================
+    // 第三部分：向量基础运算
+    // ========================================================================
 
-		const Vector3 point(1.0f, 2.0f, 3.0f);
-		const Vector3 translation(10.0f, 20.0f, 30.0f);
+    void RunVectorBasicsDemo()
+    {
+        PrintSection("向量基础运算");
 
-		PrintVector("point", point);
-		PrintVector("translation", translation);
+        const Vector3 a(1.0f, 2.0f, 3.0f);
+        const Vector3 b(4.0f, 5.0f, 6.0f);
 
-		// 直接用向量相加完成平移。
-		const Vector3 movedDirectly = point + translation;
-		PrintVector("point + translation", movedDirectly);
+        PrintVector("a", a);
+        PrintVector("b", b);
+        PrintVector("a + b", a + b);
+        PrintVector("a - b", a - b);
+        PrintVector("a * 2", a * 2.0f);
+        PrintVector("cross(a, b)", glm::cross(a, b));
+        PrintVector("normalize(a)", glm::normalize(a));
 
-		// 使用平移矩阵时，点必须扩展为 w=1 的齐次坐标。
-		Matrix4 translationMatrix = MakeTranslationMatrix(translation);
+        std::cout << std::left << std::setw(24)
+                  << "dot(a, b)" << ": " << glm::dot(a, b) << '\n';
+        std::cout << std::left << std::setw(24)
+                  << "length(a)" << ": " << glm::length(a) << '\n';
+    }
 
-		PrintMatrix("translation matrix", translationMatrix);
+    // ========================================================================
+    // 第四部分：矩阵和变换
+    // ========================================================================
 
-		const Vector4 point4(point, 1.0f);
-		const Vector4 movedByMatrix4 = translationMatrix * point4;
-		const Vector3 movedByMatrix(movedByMatrix4);
+    void RunMatrixBasicsDemo()
+    {
+        PrintSection("矩阵构造、转置和求逆");
 
-		PrintVector("matrix * point", movedByMatrix);
-	}
+        // 直接写出矩阵的四个列向量；按行查看为：
+        //   2  1  0  5
+        //   0  3  1  6
+        //   0  0  4  7
+        //   0  0  0  1
+        const Matrix4 matrix(
+            Vector4(2.0f, 0.0f, 0.0f, 0.0f),
+            Vector4(1.0f, 3.0f, 0.0f, 0.0f),
+            Vector4(0.0f, 1.0f, 4.0f, 0.0f),
+            Vector4(5.0f, 6.0f, 7.0f, 1.0f));
 
-	void RunVectorMatrixArithmeticDemo()
-	{
-		std::cout << "\n========== 向量和矩阵的加减乘除 ==========\n";
+        // 转置交换行和列；逆矩阵用于撤销原矩阵的变换。
+        // 这里保留完整矩阵输出，便于观察每个元素的变化。
+        PrintMatrix("matrix", matrix);
+        PrintMatrix("transpose(matrix)", glm::transpose(matrix));
+        PrintMatrix("inverse(matrix)", glm::inverse(matrix));
 
-		const Vector3 a(1.0f, 2.0f, 3.0f);
-		const Vector3 b(4.0f, 5.0f, 6.0f);
+        PrintSubsection("向量平移");
 
-		std::cout << "---------- 向量运算 ----------\n";
-		PrintVector("a + b", a + b);
-		PrintVector("a - b", a - b);
-		PrintVector("a * 2", a * 2.0f);
-		PrintVector("a / 2", a / 2.0f);
-		std::cout << std::left << std::setw(20)
-			<< "dot(a, b)" << ": " << glm::dot(a, b) << '\n';
-		PrintVector("cross(a, b)", glm::cross(a, b));
+        const Vector3 point(1.0f, 2.0f, 3.0f);
+        const Vector3 translation(10.0f, 20.0f, 30.0f);
 
-		std::cout << "\n---------- 矩阵运算 ----------\n";
-		const Matrix4 matrixA(
-			Vector4(2.0f, 0.0f, 0.0f, 0.0f),
-			Vector4(0.0f, 2.0f, 0.0f, 0.0f),
-			Vector4(0.0f, 0.0f, 2.0f, 0.0f),
-			Vector4(0.0f, 0.0f, 0.0f, 1.0f));
-		const Matrix4 matrixB(
-			Vector4(1.0f, 0.0f, 0.0f, 0.0f),
-			Vector4(0.0f, 1.0f, 0.0f, 0.0f),
-			Vector4(0.0f, 0.0f, 1.0f, 0.0f),
-			Vector4(3.0f, 4.0f, 5.0f, 1.0f));
+        PrintVector("point", point);
+        PrintVector("translation", translation);
+        PrintVector("直接相加", point + translation);
 
-		PrintMatrix("matrixA + matrixB", matrixA + matrixB);
-		PrintMatrix("matrixA - matrixB", matrixA - matrixB);
-		PrintMatrix("matrixA * 2", matrixA * 2.0f);
-		PrintMatrix("matrixA / 2", matrixA / 2.0f);
-		PrintMatrix("matrixA * matrixB", matrixA * matrixB);
-		PrintMatrix("matrixA / matrixB", matrixA * glm::inverse(matrixB));
+        const Matrix4 translationMatrix = MakeTranslationMatrix(translation);
+        const Vector4 translatedPoint = translationMatrix * Vector4(point, 1.0f);
+        // 点用 w=1 才能让平移矩阵的最后一列参与计算。
+        PrintVector("矩阵计算", Vector3(translatedPoint));
 
-		const Vector4 vector4(a, 1.0f);
-		PrintVector("matrixA * vector", Vector3(matrixA * vector4));
-	}
+        PrintSubsection("向量旋转");
+
+        const Vector3 rotationPoint(1.0f, 0.0f, 0.0f);
+        const float angleDegrees = 90.0f;
+        const float angleRadians = DegreesToRadians(angleDegrees);
+        const float c = std::cos(angleRadians);
+        const float s = std::sin(angleRadians);
+
+        const Vector3 rotatedDirectly(
+            rotationPoint.x * c - rotationPoint.y * s,
+            rotationPoint.x * s + rotationPoint.y * c,
+            rotationPoint.z);
+
+        PrintVector("rotation point", rotationPoint);
+        std::cout << "rotation angle          : " << angleDegrees << " degrees\n";
+        PrintVector("直接计算", rotatedDirectly);
+
+        const Matrix4 rotationMatrix = MakeRotationZMatrix(angleRadians);
+        const Vector4 rotatedPoint = rotationMatrix * Vector4(rotationPoint, 1.0f);
+        // 直接公式和矩阵结果应该一致。
+        PrintVector("矩阵计算", Vector3(rotatedPoint));
+
+        PrintSubsection("欧拉角旋转");
+
+        const Vector3 eulerDegrees(30.0f, 45.0f, 90.0f);
+        const Matrix4 eulerRotation = MakeEulerRotationMatrix(DegreesToRadians(eulerDegrees));
+
+        const Vector4 eulerRotatedPoint = eulerRotation * Vector4(rotationPoint, 1.0f);
+        PrintVector("euler degrees", eulerDegrees);
+        PrintVector("euler rotated point", Vector3(eulerRotatedPoint));
+
+        PrintSubsection("向量缩放");
+
+        const Vector3 scale(2.0f, 3.0f, 4.0f);
+        const Vector3 scalePoint(1.0f, 2.0f, 3.0f);
+
+        PrintVector("scale point", scalePoint);
+        PrintVector("scale", scale);
+        PrintVector("直接计算", scalePoint * scale);
+
+        const Matrix4 scaleMatrix = MakeScaleMatrix(scale);
+        const Vector4 scaledPoint = scaleMatrix * Vector4(scalePoint, 1.0f);
+        // 缩放矩阵和逐分量相乘应该得到相同结果。
+        PrintVector("矩阵计算", Vector3(scaledPoint));
+    }
+
+    // ========================================================================
+    // 第五部分：向量和矩阵的四则运算
+    // ========================================================================
+
+    void RunArithmeticDemo()
+    {
+        PrintSection("向量和矩阵的加减乘除");
+
+        const Vector3 a(1.0f, 2.0f, 3.0f);
+        const Vector3 b(4.0f, 5.0f, 6.0f);
+
+        PrintSubsection("向量运算");
+        PrintVector("a + b", a + b);
+        PrintVector("a - b", a - b);
+        PrintVector("a * 2", a * 2.0f);
+        PrintVector("a / 2", a / 2.0f);
+        PrintVector("cross(a, b)", glm::cross(a, b));
+        std::cout << std::left << std::setw(24)
+                  << "dot(a, b)" << ": " << glm::dot(a, b) << '\n';
+
+        const Matrix4 matrixA(
+            Vector4(2.0f, 0.0f, 0.0f, 0.0f),
+            Vector4(0.0f, 2.0f, 0.0f, 0.0f),
+            Vector4(0.0f, 0.0f, 2.0f, 0.0f),
+            Vector4(0.0f, 0.0f, 0.0f, 1.0f));
+        const Matrix4 matrixB = MakeTranslationMatrix(Vector3(3.0f, 4.0f, 5.0f));
+
+        PrintSubsection("矩阵运算");
+        // 矩阵加减是逐元素运算；矩阵乘法是行乘列。
+        // 矩阵除法没有普通定义，通常用 A * inverse(B) 表示。
+        const Matrix4 matrixSum = matrixA + matrixB;
+        const Matrix4 matrixDifference = matrixA - matrixB;
+        const Matrix4 matrixProduct = matrixA * matrixB;
+        const Matrix4 matrixQuotient = matrixA * glm::inverse(matrixB);
+        (void)matrixSum;
+        (void)matrixDifference;
+        (void)matrixProduct;
+        (void)matrixQuotient;
+
+        const Vector4 vector4(a, 1.0f);
+        PrintVector("matrixA * vector", Vector3(matrixA * vector4));
+    }
 }
 
 int main()
 {
-	std::cout << std::fixed << std::setprecision(3);
-	RunVectorBasicsDemo();
-	RunMatrixBasicsDemo();
-	RunVectorMatrixArithmeticDemo();
-	return 0;
+    std::cout << std::fixed << std::setprecision(3);
+    RunVectorBasicsDemo();
+    RunMatrixBasicsDemo();
+    RunArithmeticDemo();
+    return 0;
 }
